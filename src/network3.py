@@ -191,7 +191,7 @@ class ConvPoolLayer(object):
     """
 
     def __init__(self, filter_shape, image_shape, poolsize=(2, 2),
-                 activation_fn=sigmoid):
+                 activation_fn=sigmoid, pooling=True):
         """`filter_shape` is a tuple of length 4, whose entries are the number
         of filters, the number of input feature maps, the filter height, and the
         filter width.
@@ -207,6 +207,7 @@ class ConvPoolLayer(object):
         self.filter_shape = filter_shape
         self.image_shape = image_shape
         self.poolsize = poolsize
+        self.pooling = pooling
         self.activation_fn=activation_fn
         # initialize weights and biases
         n_out = (filter_shape[0]*np.prod(filter_shape[2:])/np.prod(poolsize))
@@ -227,10 +228,14 @@ class ConvPoolLayer(object):
         conv_out = conv.conv2d(
             input=self.inpt, filters=self.w, filter_shape=self.filter_shape,
             image_shape=self.image_shape)
-        pooled_out = downsample.max_pool_2d(
-            input=conv_out, ds=self.poolsize, ignore_border=True)
-        self.output = self.activation_fn(
-            pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
+        if self.pooling:
+            pooled_out = downsample.max_pool_2d(
+                input=conv_out, ds=self.poolsize, ignore_border=True)
+            self.output = self.activation_fn(
+                pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
+        else:
+            self.output = self.activation_fn(
+                conv_out + self.b.dimshuffle('x', 0, 'x', 'x'))
         self.output_dropout = self.output # no dropout in the convolutional layers
 
 class FullyConnectedLayer(object):
